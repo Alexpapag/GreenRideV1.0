@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offer Ride - GreenRide</title>
+  <link th:href="@{/css/app.css}" rel="stylesheet"/>
+  <link th:href="@{/css/pages.css}" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+<div class="dashboard-container">
+  <!-- Sidebar -->
+  <aside class="dashboard-sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <div class="logo-icon">
+          <i class="fas fa-car"></i>
+        </div>
+        <div class="logo-text">GreenRide</div>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="sidebar-nav">
+      <a th:href="@{/web/dashboard}" class="nav-item">
+        <i class="fas fa-home"></i>
+        <span>Dashboard</span>
+      </a>
+      <a th:href="@{/web/rides}" class="nav-item">
+        <i class="fas fa-search"></i>
+        <span>Find Rides</span>
+      </a>
+      <a th:href="@{/web/rides/new}" class="nav-item active">
+        <i class="fas fa-plus-circle"></i>
+        <span>Offer Ride</span>
+      </a>
+      <a th:href="@{/web/bookings/list}" class="nav-item">
+        <i class="fas fa-ticket-alt"></i>
+        <span>My Bookings</span>
+      </a>
+      <a th:href="@{/web/my-rides}"
+         class="nav-item"
+         th:if="${session.userId != null}">
+        <i class="fas fa-car-side"></i>
+        <span>My Rides</span>
+        <!-- Show pending badge if there are pending bookings -->
+        <span th:if="${pendingBookingsCount != null and pendingBookingsCount > 0}"
+              class="pending-badge" style="margin-left: auto;">
+        <span th:text="${pendingBookingsCount}"></span>
+    </span>
+      </a>
+      <div class="logout-btn">
+        <form th:action="@{/web/logout}" method="post" class="logout-form">
+          <button type="submit">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Logout</span>
+          </button>
+        </form>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="dashboard-main">
+    <div class="form-container">
+      <div class="form-card">
+        <h1>Offer a Ride</h1>
+        <p>Share your journey with others and earn money for your commute</p>
+
+        <form th:action="@{/web/rides}" th:object="${rideRequest}" method="post" id="rideForm">
+
+          <!-- Route Information -->
+          <div class="form-row">
+            <div class="form-group">
+              <label for="fromCity">
+                <i class="fas fa-map-marker-alt"></i>
+                From Location *
+              </label>
+              <input type="text"
+                     id="fromCity"
+                     th:field="*{fromCity}"
+                     placeholder="Start typing Athens location..."
+                     required
+                     autocomplete="off"
+                     list="fromLocationsList">
+              <datalist id="fromLocationsList"></datalist>
+              <div id="fromCitySuggestions" class="autocomplete-suggestions"></div>
+              <span th:if="${#fields.hasErrors('fromCity')}"
+                    th:errors="*{fromCity}"
+                    class="error-message"></span>
+            </div>
+
+            <div class="form-group">
+              <label for="toCity">
+                <i class="fas fa-map-marker-alt"></i>
+                To Location *
+              </label>
+              <input type="text"
+                     id="toCity"
+                     th:field="*{toCity}"
+                     placeholder="Start typing Athens location..."
+                     required
+                     autocomplete="off"
+                     list="toLocationsList">
+              <datalist id="toLocationsList"></datalist>
+              <div id="toCitySuggestions" class="autocomplete-suggestions"></div>
+              <span th:if="${#fields.hasErrors('toCity')}"
+                    th:errors="*{toCity}"
+                    class="error-message"></span>
+            </div>
+          </div>
+
+          <!-- Calculate Route Button -->
+          <div class="form-group">
+            <button type="button" id="calculateRouteBtn" class="calculate-btn">
+              <i class="fas fa-route"></i>
+              Calculate Route & Distance
+            </button>
+            <div id="routeInfo" class="route-info" style="display: none;">
+              <div class="route-detail">
+                <i class="fas fa-road"></i>
+                <span>Distance: <strong id="routeDistance">-</strong> km</span>
+              </div>
+              <div class="route-detail">
+                <i class="fas fa-clock"></i>
+                <span>Duration: <strong id="routeDuration">-</strong> min</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Hidden fields for distance and duration -->
+          <input type="hidden" id="distanceKm" th:field="*{distanceKm}">
+          <input type="hidden" id="estimatedDurationMin" th:field="*{estimatedDurationMin}">
+
+          <!-- Date and Time -->
+          <div class="form-group">
+            <label for="startDatetime">
+              <i class="far fa-calendar-alt"></i>
+              Departure Date & Time *
+            </label>
+            <input type="datetime-local"
+                   id="startDatetime"
+                   th:field="*{startDatetime}"
+                   required>
+            <div class="form-help">Select the date and time of departure</div>
+            <span th:if="${#fields.hasErrors('startDatetime')}"
+                  th:errors="*{startDatetime}"
+                  class="error-message"></span>
+          </div>
+
+          <!-- Seats and Price -->
+          <div class="form-row">
+            <div class="form-group">
+              <label for="availableSeatsTotal">
+                <i class="fas fa-users"></i>
+                Total Seats Available *
+              </label>
+              <input type="number"
+                     id="availableSeatsTotal"
+                     th:field="*{availableSeatsTotal}"
+                     min="1"
+                     max="8"
+                     placeholder="e.g., 4"
+                     required>
+              <div class="form-help">How many passengers can you take? (1-8)</div>
+              <span th:if="${#fields.hasErrors('availableSeatsTotal')}"
+                    th:errors="*{availableSeatsTotal}"
+                    class="error-message"></span>
+            </div>
+
+            <div class="form-group">
+              <label for="pricePerSeat">
+                <i class="fas fa-euro-sign"></i>
+                Price per Seat (€) *
+              </label>
+              <input type="hidden"
+                     th:value="${session.userId}"
+                     th:field="*{driverId}">
+              <input type="number"
+                     id="pricePerSeat"
+                     th:field="*{pricePerSeat}"
+                     step="0.5"
+                     min="1"
+                     placeholder="e.g., 15.00"
+                     required>
+              <div class="form-help">Price per passenger in euros</div>
+              <span th:if="${#fields.hasErrors('pricePerSeat')}"
+                    th:errors="*{pricePerSeat}"
+                    class="error-message"></span>
+            </div>
+          </div>
+
+          <!-- Form Actions -->
+          <div class="form-actions">
+            <button type="submit" class="submit-btn">
+              <i class="fas fa-car"></i>
+              Create Ride
+            </button>
+            <a th:href="@{/web/dashboard}" class="cancel-btn">
+              Cancel
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+      const form = document.getElementById('rideForm');
+      const submitBtn = form.querySelector('.submit-btn');
+      const fromCityInput = document.getElementById('fromCity');
+      const toCityInput = document.getElementById('toCity');
+      const calculateBtn = document.getElementById('calculateRouteBtn');
+      const routeInfo = document.getElementById('routeInfo');
+      const routeDistance = document.getElementById('routeDistance');
+      const routeDuration = document.getElementById('routeDuration');
+      const distanceKmInput = document.getElementById('distanceKm');
+      const durationMinInput = document.getElementById('estimatedDurationMin');
+
+      // Set minimum datetime to now
+      const datetimeInput = document.getElementById('startDatetime');
+      if (datetimeInput) {
+          const now = new Date();
+          const year = now.getFullYear();
+          const month = String(now.getMonth() + 1).padStart(2, '0');
+          const day = String(now.getDate()).padStart(2, '0');
+          const hours = String(now.getHours()).padStart(2, '0');
+          const minutes = String(now.getMinutes()).padStart(2, '0');
+
+          datetimeInput.min = `${year}-${month}-${day}T${hours}:${minutes}`;
+
+          // Default: 1 hour from now
+          const future = new Date(now.getTime() + 60 * 60 * 1000);
+          const futureHours = String(future.getHours()).padStart(2, '0');
+          const futureMinutes = String(future.getMinutes()).padStart(2, '0');
+
+          datetimeInput.value = `${year}-${month}-${day}T${futureHours}:${futureMinutes}`;
+      }
+
+      // Load Athens locations on page load
+      let athensLocations = [];
+
+      fetch('/geo/athens/locations')
+          .then(response => response.json())
+          .then(locations => {
+              athensLocations = locations;
+              populateDatalist('fromLocationsList', locations);
+              populateDatalist('toLocationsList', locations);
+          })
+          .catch(error => console.error('Error loading Athens locations:', error));
+
+      function populateDatalist(datalistId, locations) {
+          const datalist = document.getElementById(datalistId);
+          datalist.innerHTML = '';
+          locations.forEach(loc => {
+              const option = document.createElement('option');
+              option.value = loc.name;
+              option.textContent = loc.displayName;
+              datalist.appendChild(option);
+          });
+      }
+
+      // Autocomplete functionality with Athens locations
+      let autocompleteTimeout;
+
+      function setupAutocomplete(inputElement, suggestionsElement) {
+          inputElement.addEventListener('input', function() {
+              clearTimeout(autocompleteTimeout);
+              const query = this.value.trim();
+
+              if (query.length < 2) {
+                  suggestionsElement.innerHTML = '';
+                  suggestionsElement.style.display = 'none';
+                  return;
+              }
+
+              autocompleteTimeout = setTimeout(() => {
+                  // Search Athens locations first
+                  fetch(`/geo/athens/locations?q=${encodeURIComponent(query)}`)
+                      .then(response => response.json())
+                      .then(locations => {
+                          if (locations && locations.length > 0) {
+                              suggestionsElement.innerHTML = locations.slice(0, 5).map(loc => `
+                                  <div class="suggestion-item" data-name="${loc.name}">
+                                      <i class="fas fa-map-marker-alt"></i>
+                                      ${loc.displayName}
+                                  </div>
+                              `).join('');
+                              suggestionsElement.style.display = 'block';
+
+                              // Click handlers for suggestions
+                              suggestionsElement.querySelectorAll('.suggestion-item').forEach(item => {
+                                  item.addEventListener('click', function() {
+                                      inputElement.value = this.dataset.name;
+                                      suggestionsElement.style.display = 'none';
+                                  });
+                              });
+                          } else {
+                              suggestionsElement.style.display = 'none';
+                          }
+                      })
+                      .catch(error => {
+                          console.error('Autocomplete error:', error);
+                          suggestionsElement.style.display = 'none';
+                      });
+              }, 300);
+          });
+
+          // Hide suggestions when clicking outside
+          document.addEventListener('click', function(e) {
+              if (!inputElement.contains(e.target) && !suggestionsElement.contains(e.target)) {
+                  suggestionsElement.style.display = 'none';
+              }
+          });
+      }
+
+      setupAutocomplete(fromCityInput, document.getElementById('fromCitySuggestions'));
+      setupAutocomplete(toCityInput, document.getElementById('toCitySuggestions'));
+
+      // Calculate route
+      calculateBtn.addEventListener('click', function() {
+          const fromCity = fromCityInput.value.trim();
+          const toCity = toCityInput.value.trim();
+
+          if (!fromCity || !toCity) {
+              alert('Please select both departure and destination locations');
+              return;
+          }
+
+          // Show loading state
+          calculateBtn.disabled = true;
+          calculateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Calculating...';
+
+          // Use Athens-specific endpoint for faster calculation
+          fetch(`/geo/athens/route?from=${encodeURIComponent(fromCity)}&to=${encodeURIComponent(toCity)}`)
+              .then(response => {
+                  if (!response.ok) {
+                      return response.text().then(text => {
+                          throw new Error(text || 'Failed to calculate route');
+                      });
+                  }
+                  return response.json();
+              })
+              .then(data => {
+                  console.log('Route data received:', data);
+
+                  // Update UI
+                  routeDistance.textContent = data.distanceKm;
+                  routeDuration.textContent = data.durationMinutes;
+                  routeInfo.style.display = 'block';
+
+                  // Update hidden fields
+                  distanceKmInput.value = data.distanceKm;
+                  durationMinInput.value = data.durationMinutes;
+
+                  // Reset button
+                  calculateBtn.disabled = false;
+                  calculateBtn.innerHTML = '<i class="fas fa-check"></i> Route Calculated';
+                  calculateBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+              })
+              .catch(error => {
+                  console.error('Route calculation error:', error);
+                  alert('Failed to calculate route. Please select valid Athens locations.\n\nError: ' + error.message);
+
+                  // Reset button
+                  calculateBtn.disabled = false;
+                  calculateBtn.innerHTML = '<i class="fas fa-route"></i> Calculate Route & Distance';
+              });
+      });
+
+      // Form submission
+      form.addEventListener('submit', function(e) {
+          // Show loading state
+          const originalText = submitBtn.innerHTML;
+          submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Ride...';
+          submitBtn.disabled = true;
+
+          // Form will submit normally
+      });
+  });
+</script>
+</body>
+</html>

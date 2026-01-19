@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - GreenRide</title>
+  <link th:href="@{/css/app.css}" rel="stylesheet"/>
+  <link th:href="@{/css/pages.css}" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+<div class="dashboard-container">
+  <!-- Sidebar (same as before) -->
+  <aside class="dashboard-sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <div class="logo-icon">
+          <i class="fas fa-car"></i>
+        </div>
+        <div class="logo-text">GreenRide</div>
+      </div>
+    </div>
+
+    <div class="user-profile">
+      <div class="user-greeting">Admin Panel</div>
+      <div class="user-name" th:text="${username}">Admin</div>
+      <div class="user-role">
+        <span class="role-badge driver">ADMIN</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a th:href="@{/web/dashboard}" class="nav-item">
+        <i class="fas fa-home"></i>
+        <span>User Dashboard</span>
+      </a>
+      <a th:href="@{/admin/dashboard}" class="nav-item active">
+        <i class="fas fa-tachometer-alt"></i>
+        <span>Admin Dashboard</span>
+      </a>
+      <a th:href="@{/admin/users}" class="nav-item">
+        <i class="fas fa-users"></i>
+        <span>User Management</span>
+      </a>
+      <a th:href="@{/admin/rides}" class="nav-item">
+        <i class="fas fa-car"></i>
+        <span>Ride Management</span>
+      </a>
+      <a th:href="@{/admin/reviews}" class="nav-item">
+        <i class="fas fa-star"></i>
+        <span>Review Management</span>
+      </a>
+      <a th:href="@{/admin/reports}" class="nav-item">
+        <i class="fas fa-flag"></i>
+        <span>Reports</span>
+      </a>
+      <div class="logout-btn">
+        <form th:action="@{/web/logout}" method="post" class="logout-form">
+          <button type="submit">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Logout</span>
+          </button>
+        </form>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="dashboard-main">
+    <div class="admin-container">
+      <!-- Header -->
+      <header class="admin-header">
+        <h1>Admin Dashboard</h1>
+        <p>Welcome back, <span th:text="${username}">Admin</span>. Here's what's happening with your platform.</p>
+      </header>
+
+      <!-- Stats Overview -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon users">
+            <i class="fas fa-users"></i>
+          </div>
+          <div class="stat-value" th:text="${totalUsers}">0</div>
+          <p class="stat-label">Total Users</p>
+          <div class="quick-stats-grid" style="margin-top: 1rem;">
+            <div>
+              <div class="quick-stat-value" th:text="${activeUsers}">0</div>
+              <div class="quick-stat-label">Active</div>
+            </div>
+            <div>
+              <div class="quick-stat-value" th:text="${bannedUsers}">0</div>
+              <div class="quick-stat-label">Banned</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon rides">
+            <i class="fas fa-car"></i>
+          </div>
+          <div class="stat-value" th:text="${totalRides}">0</div>
+          <p class="stat-label">Total Rides</p>
+          <div class="quick-stats-grid" style="margin-top: 1rem;">
+            <div>
+              <div class="quick-stat-value" th:text="${activeRides}">0</div>
+              <div class="quick-stat-label">Active</div>
+            </div>
+            <div>
+              <div class="quick-stat-value" th:text="${completedRides}">0</div>
+              <div class="quick-stat-label">Completed</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon bookings">
+            <i class="fas fa-ticket-alt"></i>
+          </div>
+          <div class="stat-value" th:text="${totalBookings}">0</div>
+          <p class="stat-label">Total Bookings</p>
+          <div class="quick-stats-grid" style="margin-top: 1rem;">
+            <div>
+              <div class="quick-stat-value" th:text="${confirmedBookings}">0</div>
+              <div class="quick-stat-label">Confirmed</div>
+            </div>
+          </div>
+        </div>
+
+
+        <div class="stat-card">
+          <div class="stat-icon reports">
+            <i class="fas fa-flag"></i>
+          </div>
+          <div class="stat-value" th:text="${totalReports}">0</div>
+          <p class="stat-label">Reports</p>
+          <div class="quick-stats-grid" style="margin-top: 1rem;">
+            <div>
+              <div class="quick-stat-value" th:text="${openReports}">0</div>
+              <div class="quick-stat-label">Open</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Today's Activity -->
+      <div class="quick-stats">
+        <h3 style="margin-top: 0; margin-bottom: 1rem; color: #1e293b;">Today's Activity</h3>
+        <div class="quick-stats-grid">
+          <div class="quick-stat-item">
+            <div class="quick-stat-value" th:text="${todayUsers}">0</div>
+            <div class="quick-stat-label">New Users</div>
+          </div>
+          <div class="quick-stat-item">
+            <div class="quick-stat-value" th:text="${todayRides}">0</div>
+            <div class="quick-stat-label">New Rides</div>
+          </div>
+          <div class="quick-stat-item">
+            <div class="quick-stat-value" th:text="${todayBookings}">0</div>
+            <div class="quick-stat-label">New Bookings</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Users -->
+      <div class="section-card">
+        <div class="section-header">
+          <h2>Recent Users</h2>
+          <a th:href="@{/admin/users}" class="view-all">View All →</a>
+        </div>
+        <div th:if="${recentUsers != null and !recentUsers.isEmpty()}">
+          <table class="data-table">
+            <thead>
+            <tr>
+              <th>Username</th>
+              <th>Full Name</th>
+              <th>Rating (D/P)</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Joined</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="user : ${recentUsers}">
+              <td th:text="${user.username}">johndoe</td>
+              <td th:text="${user.fullName}">John Doe</td>
+              <td>
+                <span th:text="${user.ratingAvgDriver != null ? user.ratingAvgDriver : '0.0'}"></span> /
+                <span th:text="${user.ratingAvgPassenger != null ? user.ratingAvgPassenger : '0.0'}"></span>
+              </td>
+              <td th:text="${user.email}">john@example.com</td>
+              <td>
+                                        <span class="status-badge" th:classappend="${user.role == 'ADMIN'} ? 'status-active' : 'status-suspended'">
+                                            <span th:text="${user.role}">USER</span>
+                                        </span>
+              </td>
+              <td>
+                                      <span th:if="${user.status == 'ACTIVE'}" class="status-badge status-active">
+    <span th:text="${user.status}">ACTIVE</span>
+</span>
+                <span th:if="${user.status == 'BANNED'}" class="status-badge status-banned">
+    <span th:text="${user.status}">BANNED</span>
+</span>
+                <span th:if="${user.status == 'SUSPENDED'}" class="status-badge status-suspended">
+    <span th:text="${user.status}">SUSPENDED</span>
+</span>
+              </td>
+              <td th:text="${#temporals.format(user.createdAt, 'dd/MM/yyyy')}">01/01/2024</td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+        <div th:if="${recentUsers == null or recentUsers.isEmpty()}" class="empty-state">
+          <div class="empty-icon">
+            <i class="fas fa-users"></i>
+          </div>
+          <h3>No recent users</h3>
+          <p>No users have registered recently.</p>
+        </div>
+      </div>
+
+      <!-- Recent Rides -->
+      <div class="section-card">
+        <div class="section-header">
+          <h2>Recent Rides</h2>
+          <a th:href="@{/admin/rides}" class="view-all">View All →</a>
+        </div>
+        <div th:if="${recentRides != null and !recentRides.isEmpty()}">
+          <table class="data-table">
+            <thead>
+            <tr>
+              <th>Route</th>
+              <th>Driver</th>
+              <th>Date</th>
+              <th>Seats</th>
+              <th>Price</th>
+              <th>Status</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="ride : ${recentRides}">
+              <td>
+                <strong th:text="${ride.fromCity} + ' → ' + ${ride.toCity}">Berlin → Hamburg</strong>
+              </td>
+              <td th:text="${ride.driver.fullName}">John Driver</td>
+              <td th:text="${#temporals.format(ride.startDatetime, 'dd/MM HH:mm')}">01/01 08:00</td>
+              <td th:text="${ride.availableSeatsRemain} + '/' + ${ride.availableSeatsTotal}">3/4</td>
+              <td>€<span th:text="${ride.pricePerSeat}">15.00</span></td>
+              <td>
+                                        <span class="status-badge" th:classappend="${ride.status == 'PLANNED'} ? 'status-active' :
+                                                                                  (${ride.status == 'COMPLETED'} ? 'status-closed' : 'status-suspended')">
+                                            <span th:text="${ride.status}">PLANNED</span>
+                                        </span>
+              </td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+        <div th:if="${recentRides == null or recentRides.isEmpty()}" class="empty-state">
+          <div class="empty-icon">
+            <i class="fas fa-car"></i>
+          </div>
+          <h3>No recent rides</h3>
+          <p>No rides have been created recently.</p>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="section-card">
+        <div class="section-header">
+          <h2>Quick Actions</h2>
+        </div>
+        <div class="admin-nav">
+          <a th:href="@{/admin/users}" class="nav-btn">
+            <i class="fas fa-user-cog"></i>
+            Manage Users
+          </a>
+          <a th:href="@{/admin/rides}" class="nav-btn">
+            <i class="fas fa-car"></i>
+            Manage Rides
+          </a>
+          <a th:href="@{/admin/reports}" class="nav-btn">
+            <i class="fas fa-flag"></i>
+            View Reports
+          </a>
+          <a th:href="@{/admin/reviews}" class="nav-btn">
+            <i class="fas fa-star"></i>
+            Manage Reviews
+          </a>
+          <a th:href="@{/web/rides/new}" class="nav-btn">
+            <i class="fas fa-plus-circle"></i>
+            Create Ride
+          </a>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  // Auto-refresh dashboard every 60 seconds
+  setTimeout(function() {
+      window.location.reload();
+  }, 60000);
+
+  // Initialize tooltips
+  document.querySelectorAll('.stat-card').forEach(card => {
+      card.addEventListener('mouseenter', function() {
+          this.style.transform = 'translateY(-2px)';
+      });
+      card.addEventListener('mouseleave', function() {
+          this.style.transform = 'translateY(0)';
+      });
+  });
+</script>
+</body>
+</html>

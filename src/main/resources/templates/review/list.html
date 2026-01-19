@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reviews - GreenRide</title>
+  <link th:href="@{/css/app.css}" rel="stylesheet"/>
+  <link th:href="@{/css/pages.css}" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+<div class="dashboard-container">
+  <!-- Sidebar -->
+  <aside class="dashboard-sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <div class="logo-icon">
+          <i class="fas fa-car"></i>
+        </div>
+        <div class="logo-text">GreenRide</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <a th:href="@{${session.role == 'ADMIN' ? '/admin/dashboard' : '/web/dashboard'}}" class="nav-item">
+        <i class="fas fa-arrow-left"></i>
+        <span>Back to Dashboard</span>
+      </a>
+    </nav>
+  </aside>
+
+  <main class="dashboard-main">
+    <div class="reviews-container">
+      <div class="page-header">
+        <h1 th:text="${isAdminView ? 'All Platform Reviews' : 'My Reviews'}">Reviews</h1>
+        <p th:text="${isAdminView ? 'Monitoring feedback across the platform' : 'See what others say about you and your feedback to them'}"></p>
+      </div>
+
+      <div th:if="${reviews != null and !reviews.isEmpty()}">
+        <div th:each="review : ${reviews}" class="review-card">
+          <div class="review-header">
+            <div class="reviewer-info">
+              <div class="reviewer-avatar">
+                <i class="fas fa-user"></i>
+              </div>
+              <div>
+                <div class="reviewer-name">
+                  <span th:text="${review.reviewer.id == userId ? 'You' : review.reviewer.fullName}">Reviewer Name</span>
+                  <i class="fas fa-arrow-right review-arrow"></i>
+                  <span th:text="${review.reviewee.id == userId ? 'You' : review.reviewee.fullName}">Reviewee Name</span>
+                </div>
+                <div class="review-date" th:text="${#temporals.format(review.createdAt, 'dd MMM yyyy')}">Date</div>
+              </div>
+            </div>
+            <div class="badge badge-role" th:text="${review.roleOfReviewee}">DRIVER</div>
+          </div>
+
+          <div class="stars">
+            <i th:each="i : ${#numbers.sequence(1, 5)}" 
+               th:class="${i <= review.rating ? 'fas fa-star' : 'far fa-star'}"></i>
+          </div>
+
+          <div class="review-content" th:text="${review.comment ?: 'No comment provided.'}">
+            Review text goes here...
+          </div>
+
+          <div class="ride-info">
+            <span><i class="fas fa-map-marker-alt"></i> <span th:text="${review.ride.fromCity} + ' → ' + ${review.ride.toCity}">Berlin → Munich</span></span>
+            <span><i class="fas fa-calendar-alt"></i> <span th:text="${#temporals.format(review.ride.startDatetime, 'dd/MM/yyyy')}">Date</span></span>
+          </div>
+
+          <div th:if="${isAdminView}" class="admin-review-actions">
+             <form th:action="@{/admin/reviews/{id}/delete(id=${review.id})}" method="post" onsubmit="return confirm('Are you sure you want to delete this review?')">
+                <button type="submit" class="badge badge-delete-review">
+                  <i class="fas fa-trash"></i> Delete Review
+                </button>
+             </form>
+          </div>
+        </div>
+      </div>
+
+      <div th:if="${reviews == null or reviews.isEmpty()}" class="empty-state">
+        <div class="empty-icon"><i class="fas fa-star"></i></div>
+        <h3>No reviews yet</h3>
+        <p>Reviews will appear here once rides are completed and rated.</p>
+      </div>
+    </div>
+  </main>
+</div>
+</body>
+</html>

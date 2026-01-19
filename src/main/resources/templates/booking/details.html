@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title th:text="'Booking: ' + ${ride.fromCity} + ' → ' + ${ride.toCity} + ' - GreenRide'">Booking Details</title>
+  <link th:href="@{/css/app.css}" rel="stylesheet"/>
+  <link th:href="@{/css/pages.css}" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+<div class="dashboard-container">
+  <!-- Sidebar -->
+  <aside class="dashboard-sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <div class="logo-icon"><i class="fas fa-car"></i></div>
+        <div class="logo-text">GreenRide</div>
+      </div>
+    </div>
+    <!-- User Profile -->
+    <div class="user-profile">
+      <div class="user-greeting">Welcome back,</div>
+      <div class="user-name" th:text="${session.username}">John Doe</div>
+      <div class="user-role">
+        <span class="role-badge driver">Driver</span>
+        <span class="role-badge passenger">Passenger</span>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="sidebar-nav">
+      <a th:href="@{/web/dashboard}" class="nav-item">
+        <i class="fas fa-home"></i><span>Dashboard</span>
+      </a>
+      <a th:href="@{/web/rides}" class="nav-item">
+        <i class="fas fa-search"></i><span>Find Rides</span>
+      </a>
+      <a th:href="@{/web/rides/new}" class="nav-item">
+        <i class="fas fa-plus-circle"></i><span>Offer Ride</span>
+      </a>
+      <a th:href="@{/web/bookings/list}" class="nav-item active">
+        <i class="fas fa-ticket-alt"></i><span>My Bookings</span>
+      </a>
+      <a th:href="@{/web/reviews}" class="nav-item">
+        <i class="fas fa-star"></i><span>My Reviews</span>
+      </a>
+      <a th:href="@{/web/my-rides}" class="nav-item" th:if="${session.userId != null}">
+        <i class="fas fa-car-side"></i><span>My Rides</span>
+        <!-- Show pending badge if there are pending bookings -->
+        <span th:if="${session.pendingBookingsCount != null and session.pendingBookingsCount > 0}"
+              class="pending-badge" style="margin-left: auto;">
+            <span th:text="${session.pendingBookingsCount}"></span>
+        </span>
+      </a>
+      <div th:if="${session.role == 'ADMIN'}">
+        <a th:href="@{/admin/dashboard}" class="nav-item" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+          <i class="fas fa-shield-alt"></i>
+          <span>Admin Panel</span>
+        </a>
+      </div>
+      <div class="logout-btn">
+        <form th:action="@{/web/logout}" method="post" class="logout-form">
+          <button type="submit"><i class="fas fa-sign-out-alt"></i><span>Logout</span></button>
+        </form>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="dashboard-main">
+    <div class="details-card">
+      <!-- Page Header -->
+      <div class="ride-header">
+        <h1 class="route-title">Booking Details</h1>
+        <p style="color: #64748b; margin-top: 0.5rem;">
+          Trip from <span th:text="${ride.fromCity}"></span> to <span th:text="${ride.toCity}"></span>
+        </p>
+      </div>
+
+      <!-- Booking Summary -->
+      <div class="info-card highlight" style="margin-bottom: 2rem;">
+        <h3><i class="fas fa-ticket-alt"></i> Your Booking</h3>
+        <div class="info-grid" style="margin-bottom: 0; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+          <div class="info-item" style="display: block;">
+            <div class="info-label">Status</div>
+            <div style="margin-top: 4px;">
+              <span th:class="'badge ' + (${booking.status == 'CONFIRMED' ? 'bg-success' : (booking.status == 'PENDING' ? 'bg-warning' : 'bg-danger')})"
+                    th:text="${booking.status}"></span>
+            </div>
+          </div>
+          <div class="info-item" style="display: block;">
+            <div class="info-label">Seats</div>
+            <div class="info-value" th:text="${booking.seatsBooked}"></div>
+          </div>
+          <div class="info-item" style="display: block;">
+            <div class="info-label">Total Price</div>
+            <div class="info-value">€<span th:text="${booking.totalPrice}"></span></div>
+          </div>
+          <div class="info-item" style="display: block;">
+            <div class="info-label">Booked At</div>
+            <div class="info-value" th:text="${#temporals.format(booking.bookedAt, 'dd MMM yyyy HH:mm')}"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Info Grid (Ride Details) -->
+      <div class="info-grid">
+        <div class="info-card">
+          <h3><i class="fas fa-info-circle"></i> Ride Information</h3>
+          <div class="info-item">
+            <span class="info-label">Driver</span>
+            <span class="info-value" th:text="${ride.driver?.fullName ?: ride.driver?.username}"></span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Departure</span>
+            <span class="info-value" th:text="${#temporals.format(ride.startDatetime, 'dd MMM yyyy, HH:mm')}"></span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Price per seat</span>
+            <span class="info-value">€<span th:text="${ride.pricePerSeat}"></span></span>
+          </div>
+        </div>
+
+        <div class="info-card">
+          <h3><i class="fas fa-road"></i> Trip Details</h3>
+          <div class="info-item">
+            <span class="info-label">From</span>
+            <span class="info-value" th:text="${ride.fromCity}"></span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">To</span>
+            <span class="info-value" th:text="${ride.toCity}"></span>
+          </div>
+          <div class="info-item" th:if="${ride.distanceKm}">
+            <span class="info-label">Distance</span>
+            <span class="info-value"><span th:text="${ride.distanceKm}"></span> km</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
+        <a th:href="@{/web/bookings/list}" class="btn btn-secondary">
+          <i class="fas fa-arrow-left"></i> My Bookings
+        </a>
+        
+        <th:block th:if="${booking.status != 'CANCELLED' and ride.startDatetime.isAfter(T(java.time.LocalDateTime).now())}">
+            <form th:action="@{/web/bookings/{id}/cancel(id=${booking.id})}" method="post" style="display: inline;">
+                <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to cancel this booking?')">
+                  <i class="fas fa-times"></i> Cancel Booking
+                </button>
+            </form>
+        </th:block>
+
+        <a th:href="@{/web/rides/{id}(id=${ride.id})}" class="btn btn-primary">
+          <i class="fas fa-info-circle"></i> View Ride Details
+        </a>
+      </div>
+
+      <!-- Reviews Section -->
+      <div th:if="${booking.status == 'COMPLETED'}" style="margin-top: 3rem;">
+        <h3 style="color: #0f172a; border-bottom: 2px solid #f1f5f9; padding-bottom: 0.5rem;">
+          <i class="fas fa-star"></i> Rate Experience
+        </h3>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem;">
+          <!-- Passenger can rate driver -->
+          <div class="info-card" style="flex: 1; min-width: 250px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <div style="font-size: 0.85rem; color: #64748b;">Rate Driver</div>
+                <div style="font-weight: 600;" th:text="${ride.driver.fullName}">Driver Name</div>
+              </div>
+              <a th:href="@{/web/reviews/new(rideId=${ride.id}, revieweeId=${ride.driver.id}, role='DRIVER')}" class="btn btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">
+                Rate Driver
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+</body>
+</html>

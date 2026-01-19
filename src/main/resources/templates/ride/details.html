@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title th:text="${ride.fromCity} + ' → ' + ${ride.toCity} + ' - GreenRide'">Ride Details</title>
+  <link th:href="@{/css/app.css}" rel="stylesheet"/>
+  <link th:href="@{/css/pages.css}" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+<div class="dashboard-container">
+  <!-- Sidebar -->
+  <aside class="dashboard-sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <div class="logo-icon"><i class="fas fa-car"></i></div>
+        <div class="logo-text">GreenRide</div>
+      </div>
+    </div>
+    <!-- User Profile -->
+    <div class="user-profile">
+      <div class="user-greeting">Welcome back,</div>
+      <div class="user-name" th:text="${session.username}">John Doe</div>
+      <div class="user-role">
+        <span class="role-badge driver">Driver</span>
+        <span class="role-badge passenger">Passenger</span>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <a th:href="@{/web/dashboard}" class="nav-item">
+        <i class="fas fa-home"></i><span>Dashboard</span>
+      </a>
+      <a th:href="@{/web/rides}" class="nav-item active">
+        <i class="fas fa-search"></i><span>Find Rides</span>
+      </a>
+      <a th:href="@{/web/rides/new}" class="nav-item">
+        <i class="fas fa-plus-circle"></i><span>Offer Ride</span>
+      </a>
+      <a th:href="@{/web/bookings/list}" class="nav-item">
+        <i class="fas fa-ticket-alt"></i><span>My Bookings</span>
+      </a>
+      <a th:href="@{/web/reviews}" class="nav-item">
+        <i class="fas fa-star"></i><span>My Reviews</span>
+      </a>
+      <a th:href="@{/web/my-rides}" class="nav-item" th:if="${session.userId != null}">
+        <i class="fas fa-car-side"></i><span>My Rides</span>
+        <!-- Show pending badge if there are pending bookings -->
+        <span th:if="${session.pendingBookingsCount != null and session.pendingBookingsCount > 0}"
+              class="pending-badge" style="margin-left: auto;">
+            <span th:text="${session.pendingBookingsCount}"></span>
+        </span>
+      </a>
+      <div th:if="${session.role == 'ADMIN'}">
+        <a th:href="@{/admin/dashboard}" class="nav-item" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+          <i class="fas fa-shield-alt"></i>
+          <span>Admin Panel</span>
+        </a>
+      </div>
+      <div class="logout-btn">
+        <form th:action="@{/web/logout}" method="post" class="logout-form">
+          <button type="submit"><i class="fas fa-sign-out-alt"></i><span>Logout</span></button>
+        </form>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="dashboard-main">
+    <div class="details-card">
+      <!-- Ride Header -->
+      <div class="ride-header">
+        <h1 class="route-title" th:text="${ride.fromCity} + ' → ' + ${ride.toCity}"></h1>
+        <div class="ride-meta">
+          <span><i class="far fa-calendar-alt"></i> <span th:text="${#temporals.format(ride.startDatetime, 'dd MMM yyyy')}"></span></span>
+          <span><i class="far fa-clock"></i> <span th:text="${#temporals.format(ride.startDatetime, 'HH:mm')}"></span></span>
+          <span><i class="fas fa-users"></i> <span th:text="${ride.availableSeatsRemain} + '/' + ${ride.availableSeatsTotal}"></span> seats</span>
+        </div>
+      </div>
+
+      <!-- Map Visualization -->
+      <div th:if="${ride.distanceKm != null and ride.estimatedDurationMin != null}" style="margin-bottom: 2rem;">
+        <div id="map" style="height: 400px; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"></div>
+        <div style="display: flex; gap: 1rem; margin-top: 1rem; padding: 1rem; background: #f8fafc; border-radius: 8px;">
+          <div style="flex: 1; text-align: center;">
+            <div style="color: #64748b; font-size: 0.85rem; margin-bottom: 0.25rem;">Distance</div>
+            <div style="color: #0f172a; font-size: 1.5rem; font-weight: 700;">
+              <span th:text="${ride.distanceKm}">0</span> km
+            </div>
+          </div>
+          <div style="flex: 1; text-align: center;">
+            <div style="color: #64748b; font-size: 0.85rem; margin-bottom: 0.25rem;">Duration</div>
+            <div style="color: #0f172a; font-size: 1.5rem; font-weight: 700;">
+              <span th:text="${ride.estimatedDurationMin}">0</span> min
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Info Grid -->
+      <div class="info-grid">
+        <div class="info-card">
+          <h3><i class="fas fa-info-circle"></i> Ride Details</h3>
+          <div class="info-item">
+            <span class="info-label">Driver</span>
+            <span style="display: flex; align-items: center; gap: 0.5rem;">
+              <span class="info-value" th:text="${ride.driver?.fullName ?: ride.driver?.username}"></span>
+              <button th:if="${!isDriver}" class="btn-report"
+                      th:attr="data-user-id=${ride.driver.id},data-username=${ride.driver.username}"
+                      onclick="openReportModalFromButton(this)" type="button">
+                <i class="fas fa-flag"></i> Report
+              </button>
+            </span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Status</span>
+            <span th:class="'badge ' + (${ride.status == 'PLANNED' ? 'bg-success' : 'bg-secondary'})" th:text="${ride.status}"></span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Price</span>
+            <span class="info-value">€<span th:text="${ride.pricePerSeat}"></span></span>
+          </div>
+        </div>
+
+        <div class="info-card">
+          <h3><i class="fas fa-road"></i> Trip Details</h3>
+          <div class="info-item">
+            <span class="info-label">From</span>
+            <span class="info-value" th:text="${ride.fromCity}"></span>
+          </div>
+          <div class="info-item" th:if="${ride.fromAddress}">
+            <span class="info-label">Address</span>
+            <span class="info-value" th:text="${ride.fromAddress}"></span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">To</span>
+            <span class="info-value" th:text="${ride.toCity}"></span>
+          </div>
+          <div class="info-item" th:if="${ride.toAddress}">
+            <span class="info-label">Address</span>
+            <span class="info-value" th:text="${ride.toAddress}"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+        <a th:href="@{/web/rides}" class="btn btn-secondary">
+          <i class="fas fa-arrow-left"></i> Back
+        </a>
+
+        <th:block th:if="${isDriver}">
+          <a th:href="@{/web/my-rides}" class="btn btn-primary">
+            <i class="fas fa-car-side"></i> Manage My Rides
+          </a>
+        </th:block>
+
+        <th:block th:unless="${isDriver}">
+          <a th:href="@{'/web/bookings/new/' + ${ride.id}}" th:if="${canBook}" class="btn btn-success">
+            <i class="fas fa-bookmark"></i> Book Now
+          </a>
+          <div th:if="${alreadyBooked}" class="btn btn-secondary" style="opacity: 0.7; cursor: not-allowed;">
+            <i class="fas fa-check"></i> Already Booked
+          </div>
+        </th:block>
+      </div>
+
+      <!-- Bookings List (for drivers) -->
+      <div th:if="${isDriver and bookings != null and !bookings.isEmpty()}" style="margin-top: 3rem;">
+        <h3 style="color: #0f172a; border-bottom: 2px solid #f1f5f9; padding-bottom: 0.5rem;">
+          <i class="fas fa-users"></i> Passenger Bookings
+        </h3>
+        <table class="passenger-table">
+          <thead>
+            <tr>
+              <th>Passenger</th>
+              <th>Seats</th>
+              <th>Status</th>
+              <th>Booked At</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr th:each="booking : ${bookings}">
+              <td th:text="${booking.passenger?.fullName ?: booking.passenger?.username}"></td>
+              <td th:text="${booking.seatsBooked}"></td>
+              <td>
+                <span th:class="'badge ' + (${booking.status == 'PENDING' ? 'bg-warning' : (booking.status == 'CONFIRMED' ? 'bg-success' : 'bg-danger')})"
+                      th:text="${booking.status}"></span>
+              </td>
+              <td th:text="${#temporals.format(booking.bookedAt, 'dd MMM HH:mm')}"></td>
+              <td>
+                <button class="btn-report"
+                        th:attr="data-user-id=${booking.passenger.id},data-username=${booking.passenger.username}"
+                        onclick="openReportModalFromButton(this)" type="button">
+                  <i class="fas fa-flag"></i> Report
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Reviews Section -->
+      <div th:if="${(isDriver or alreadyBooked) and (ride.status == 'COMPLETED' or ride.status == 'CANCELLED')}" style="margin-top: 3rem;">
+        <h3 style="color: #0f172a; border-bottom: 2px solid #f1f5f9; padding-bottom: 0.5rem;">
+          <i class="fas fa-star"></i> Rate Participants
+        </h3>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem;">
+          <!-- Driver can rate passengers -->
+          <th:block th:if="${isDriver}">
+            <div th:each="booking : ${bookings}" th:if="${booking.status == 'COMPLETED'}" class="info-card" style="flex: 1; min-width: 250px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span th:text="${booking.passenger.fullName}">Passenger Name</span>
+                <a th:href="@{/web/reviews/new(rideId=${ride.id}, revieweeId=${booking.passenger.id}, role='PASSENGER')}" class="btn btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">
+                  Rate Passenger
+                </a>
+              </div>
+            </div>
+          </th:block>
+
+          <!-- Passenger can rate driver -->
+          <th:block th:if="${alreadyBooked and !isDriver}">
+            <div class="info-card" style="flex: 1; min-width: 250px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span th:text="${ride.driver.fullName}">Driver Name</span>
+                <a th:href="@{/web/reviews/new(rideId=${ride.id}, revieweeId=${ride.driver.id}, role='DRIVER')}" class="btn btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">
+                  Rate Driver
+                </a>
+              </div>
+            </div>
+          </th:block>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Report User Modal -->
+<div id="reportModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title">Report User</h3>
+      <button class="close-btn" onclick="closeReportModal()" type="button">&times;</button>
+    </div>
+    <form id="reportForm" onsubmit="submitReport(event)">
+      <div class="form-group">
+        <label class="form-label">Reporting User</label>
+        <input type="text" id="reportedUsername" class="form-control" readonly style="background: #f8fafc;">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Reason <span style="color: #ef4444;">*</span></label>
+        <textarea id="reportReason" class="form-control" placeholder="Please describe the reason for reporting this user..." required></textarea>
+      </div>
+      <input type="hidden" id="reportedUserId">
+      <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+        <button type="button" class="btn btn-secondary" onclick="closeReportModal()">Cancel</button>
+        <button type="submit" class="btn btn-danger">
+          <i class="fas fa-flag"></i> Submit Report
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script th:inline="javascript">
+  /*<![CDATA[*/
+  document.addEventListener('DOMContentLoaded', function() {
+      const fromCity = /*[[${ride.fromCity}]]*/ '';
+      const toCity = /*[[${ride.toCity}]]*/ '';
+      const distanceKm = /*[[${ride.distanceKm}]]*/ null;
+      const durationMin = /*[[${ride.estimatedDurationMin}]]*/ null;
+
+      // Only initialize map if we have distance/duration data
+      if (distanceKm && durationMin) {
+          initializeMap(fromCity, toCity);
+      }
+  });
+
+  async function initializeMap(fromCity, toCity) {
+      try {
+          console.log('Initializing map for route:', fromCity, '->', toCity);
+
+          // First, try to check if these are Athens locations
+          let fromData = null;
+          let toData = null;
+
+          // Try Athens locations first (faster and more reliable for Greek names)
+          try {
+              const athensLocResponse = await fetch(`/geo/athens/locations?q=${encodeURIComponent(fromCity)}`);
+              if (athensLocResponse.ok) {
+                  const athensLocs = await athensLocResponse.json();
+                  if (athensLocs && athensLocs.length > 0) {
+                      const loc = athensLocs[0];
+                      fromData = { lat: loc.lat, lon: loc.lon, display_name: loc.displayName };
+                      console.log('From location (Athens):', fromData);
+                  }
+              }
+          } catch (e) {
+              console.warn('Athens location lookup failed for from city:', e);
+          }
+
+          // Fallback to regular geocoding if not found in Athens locations
+          if (!fromData) {
+              const fromResponse = await fetch(`/geo/forward?q=${encodeURIComponent(fromCity)}`);
+              if (!fromResponse.ok) {
+                  throw new Error(`Failed to geocode ${fromCity}: ${fromResponse.status}`);
+              }
+              fromData = await fromResponse.json();
+              console.log('From location (Nominatim):', fromData);
+          }
+
+          // Try Athens locations for destination
+          try {
+              const athensLocResponse = await fetch(`/geo/athens/locations?q=${encodeURIComponent(toCity)}`);
+              if (athensLocResponse.ok) {
+                  const athensLocs = await athensLocResponse.json();
+                  if (athensLocs && athensLocs.length > 0) {
+                      const loc = athensLocs[0];
+                      toData = { lat: loc.lat, lon: loc.lon, display_name: loc.displayName };
+                      console.log('To location (Athens):', toData);
+                  }
+              }
+          } catch (e) {
+              console.warn('Athens location lookup failed for to city:', e);
+          }
+
+          // Fallback to regular geocoding
+          if (!toData) {
+              const toResponse = await fetch(`/geo/forward?q=${encodeURIComponent(toCity)}`);
+              if (!toResponse.ok) {
+                  throw new Error(`Failed to geocode ${toCity}: ${toResponse.status}`);
+              }
+              toData = await toResponse.json();
+              console.log('To location (Nominatim):', toData);
+          }
+
+          // Get route details - try Athens route first if both are Athens locations
+          let routeData = null;
+          try {
+              const routeResponse = await fetch(`/geo/athens/route?from=${encodeURIComponent(fromCity)}&to=${encodeURIComponent(toCity)}`);
+              if (routeResponse.ok) {
+                  routeData = await routeResponse.json();
+                  console.log('Route data (Athens):', routeData);
+              } else {
+                  console.warn('Athens route API failed, trying regular route');
+                  const fallbackResponse = await fetch(`/geo/route?from=${encodeURIComponent(fromCity)}&to=${encodeURIComponent(toCity)}`);
+                  if (fallbackResponse.ok) {
+                      routeData = await fallbackResponse.json();
+                      console.log('Route data (regular):', routeData);
+                  }
+              }
+          } catch (e) {
+              console.warn('Route lookup failed, will draw straight line:', e);
+          }
+
+          // Initialize map
+          const map = L.map('map').setView([fromData.lat, fromData.lon], 7);
+
+          // Add tile layer
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+              attribution: '© OpenStreetMap contributors',
+              maxZoom: 19
+          }).addTo(map);
+
+          // Add markers
+          const startIcon = L.divIcon({
+              className: 'custom-marker',
+              html: '<div style="background: #10b981; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">A</div>',
+              iconSize: [32, 32],
+              iconAnchor: [16, 16]
+          });
+
+          const endIcon = L.divIcon({
+              className: 'custom-marker',
+              html: '<div style="background: #ef4444; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">B</div>',
+              iconSize: [32, 32],
+              iconAnchor: [16, 16]
+          });
+
+          L.marker([fromData.lat, fromData.lon], {icon: startIcon})
+              .addTo(map)
+              .bindPopup(`<b>Start:</b> ${fromCity}`);
+
+          L.marker([toData.lat, toData.lon], {icon: endIcon})
+              .addTo(map)
+              .bindPopup(`<b>Destination:</b> ${toCity}`);
+
+          // Decode and draw polyline if available
+          if (routeData && routeData.polyline) {
+              console.log('Drawing route polyline');
+              const coordinates = decodePolyline(routeData.polyline);
+              const polyline = L.polyline(coordinates, {
+                  color: '#3b82f6',
+                  weight: 4,
+                  opacity: 0.7
+              }).addTo(map);
+
+              // Fit map to show entire route
+              map.fitBounds(polyline.getBounds(), {padding: [50, 50]});
+          } else {
+              // Fallback: draw straight line
+              console.log('Drawing straight line (no polyline available)');
+              const latlngs = [
+                  [fromData.lat, fromData.lon],
+                  [toData.lat, toData.lon]
+              ];
+              const polyline = L.polyline(latlngs, {
+                  color: '#3b82f6',
+                  weight: 4,
+                  opacity: 0.7,
+                  dashArray: '10, 10'
+              }).addTo(map);
+
+              map.fitBounds(polyline.getBounds(), {padding: [50, 50]});
+          }
+
+          console.log('Map initialized successfully');
+
+      } catch (error) {
+          console.error('Error initializing map:', error);
+          const mapEl = document.getElementById('map');
+          if (mapEl) {
+              mapEl.innerHTML = `<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #64748b; background: #f8fafc;">
+                  <i class="fas fa-exclamation-triangle" style="font-size: 3rem; margin-bottom: 1rem; color: #f59e0b;"></i>
+                  <p style="font-size: 1rem; margin: 0;">Unable to load map</p>
+                  <p style="font-size: 0.85rem; margin: 0.5rem 0 0 0; color: #94a3b8;">${error.message || 'Unknown error'}</p>
+              </div>`;
+          }
+      }
+  }
+
+  // Decode polyline from OSRM (encoded polyline format)
+  function decodePolyline(encoded) {
+      const coordinates = [];
+      let index = 0;
+      let lat = 0;
+      let lng = 0;
+
+      while (index < encoded.length) {
+          let b;
+          let shift = 0;
+          let result = 0;
+
+          do {
+              b = encoded.charCodeAt(index++) - 63;
+              result |= (b & 0x1f) << shift;
+              shift += 5;
+          } while (b >= 0x20);
+
+          const dlat = ((result & 1) ? ~(result >> 1) : (result >> 1));
+          lat += dlat;
+
+          shift = 0;
+          result = 0;
+
+          do {
+              b = encoded.charCodeAt(index++) - 63;
+              result |= (b & 0x1f) << shift;
+              shift += 5;
+          } while (b >= 0x20);
+
+          const dlng = ((result & 1) ? ~(result >> 1) : (result >> 1));
+          lng += dlng;
+
+          coordinates.push([lat / 1e5, lng / 1e5]);
+      }
+
+      return coordinates;
+  }
+
+  // Report Modal Functions
+  function openReportModalFromButton(button) {
+      const userId = button.getAttribute('data-user-id');
+      const username = button.getAttribute('data-username');
+      openReportModal(userId, username);
+  }
+
+  function openReportModal(userId, username) {
+      document.getElementById('reportedUserId').value = userId;
+      document.getElementById('reportedUsername').value = username;
+      document.getElementById('reportReason').value = '';
+      document.getElementById('reportModal').classList.add('active');
+  }
+
+  function closeReportModal() {
+      document.getElementById('reportModal').classList.remove('active');
+  }
+
+  // Close modal when clicking outside
+  window.onclick = function(event) {
+      const modal = document.getElementById('reportModal');
+      if (event.target === modal) {
+          closeReportModal();
+      }
+  }
+
+  async function submitReport(event) {
+      event.preventDefault();
+
+      const reportedUserId = document.getElementById('reportedUserId').value;
+      const reason = document.getElementById('reportReason').value;
+
+      const submitBtn = event.target.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+
+      try {
+          const response = await fetch('/web/reports/submit', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/x-www-form-urlencoded',
+              },
+              body: `reportedUserId=${reportedUserId}&reason=${encodeURIComponent(reason)}`
+          });
+
+          if (response.ok) {
+              alert('Report submitted successfully. Our team will review it.');
+              closeReportModal();
+          } else {
+              const errorText = await response.text();
+              alert('Failed to submit report: ' + errorText);
+          }
+      } catch (error) {
+          console.error('Error submitting report:', error);
+          alert('An error occurred while submitting the report. Please try again.');
+      } finally {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<i class="fas fa-flag"></i> Submit Report';
+      }
+  }
+  /*]]>*/
+</script>
+</body>
+</html>
